@@ -14,7 +14,8 @@ Welcome to ContestHub, a platform designed to streamline the process of managing
 - **Express**: As the web framework for Node.js.
 - **MongoDB**: As the database to store user and contest data.
 
-<img width="1545" alt="Screenshot 2025-03-22 at 1 07 50 PM" src="https://github.com/user-attachments/assets/dff16eec-4f9c-420e-9c5e-6b3c93387a3d" />
+
+<img width="1545" alt="Screenshot 2025-03-22 at 1 09 23 PM" src="https://github.com/user-attachments/assets/bf4f9f82-b84c-4cbc-9bd1-95b1adf03b42" />
 
 
 ## Features
