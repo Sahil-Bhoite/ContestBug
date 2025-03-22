@@ -35,8 +35,8 @@ To get started with ContestHub, follow these steps:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Sahil-Bhoite/ContestHub.git
-   cd ContestHub
+   git clone https://github.com/Sahil-Bhoite/Contestbug.git
+   cd Contestbug
    ```
 
 2. **Install dependencies:**
