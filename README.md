@@ -1,11 +1,7 @@
-Welcome to ContestHub, a platform designed to streamline the process of managing and participating in various contests. This project aims to provide a user-friendly interface for both contest organizers and participants. **Please note that this project is still under development.**
->>>>>>> 65457da (update 2)
+
 # ContestHub
 
 Welcome to ContestHub, a platform designed to streamline the process of managing and participating in various contests. This project aims to provide a user-friendly interface for both contest organizers and participants. **Please note that this project is still under development.**
-=======
-Welcome to ContestHub, a platform designed to streamline the process of managing and participating in various contests. This project aims to provide a user-friendly interface for both contest organizers and participants. **Please note that this project is still under development.**
->>>>>>> 65457da (update 2)
 
 ## Tools Used
 
