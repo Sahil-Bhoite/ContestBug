@@ -95,15 +95,27 @@ const Login = () => {
                   className="focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200"
                 />
               </div>
+              <div className="flex justify-center gap-4 mt-4">
+                <a href="/auth/google" className="w-full inline-block text-center bg-blue-500 text-white py-2 rounded">
+                  Log in with Google
+                </a>
+                <a href="/auth/github" className="w-full inline-block text-center bg-gray-800 text-white py-2 rounded">
+                  Log in with GitHub
+                </a>
+              </div>
             </CardContent>
+
             <CardFooter>
-              <Button 
-                type="submit" 
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:shadow-md transition-all"
-                disabled={loading}
-              >
-                {loading ? "Logging in..." : "Log in"}
-              </Button>
+              <div className="button-wrap">
+                <button 
+                  type="submit" 
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:shadow-md transition-all"
+                  disabled={loading}
+                >
+                  <span>{loading ? "Logging in..." : "Log in"}</span>
+                </button>
+                <div className="button-shadow"></div>
+              </div>
             </CardFooter>
           </form>
         </Card>

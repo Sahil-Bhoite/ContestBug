@@ -84,7 +84,7 @@ export const RatingChart = ({ data, theme = "dark", platform = "Codeforces", cur
   const { rating, tier: displayTier } = getCurrentRating();
   
   // Custom tooltip component
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
     if (active && payload && payload.length) {
       return (
         <div className={`px-3 py-2 rounded shadow-md ${theme === "dark" ? "bg-zinc-800 border border-zinc-700" : "bg-white border border-zinc-200"}`}>

@@ -1,62 +1,145 @@
-
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const GitHubStrategy = require('passport-github').Strategy;
+const session = require('express-session');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Enable CORS
+// Mock user database (in production, use a real database like MongoDB)
+const users = new Map();
+
+// Middleware
 app.use(cors());
+app.use(express.json());
+app.use(
+  session({
+    secret: 'your-secret-key', // Replace with a secure key in production
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport serialization
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser((id, done) => {
+  const user = Array.from(users.values()).find((u) => u.id === id);
+  done(null, user || null);
+});
+
+// Configure Google OAuth
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: '/auth/google/callback',
+    },
+    (accessToken, refreshToken, profile, done) => {
+      let user = Array.from(users.values()).find((u) => u.googleId === profile.id);
+      if (!user) {
+        const newUser = {
+          id: profile.id,
+          username: `google_${profile.id}`,
+          googleId: profile.id,
+          platforms: {},
+        };
+        users.set(newUser.username, newUser);
+        return done(null, newUser);
+      }
+      return done(null, user);
+    }
+  )
+);
+
+// Configure GitHub OAuth
+passport.use(
+  new GitHubStrategy(
+    {
+      clientID: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      callbackURL: '/auth/github/callback',
+    },
+    (accessToken, refreshToken, profile, done) => {
+      let user = Array.from(users.values()).find((u) => u.githubId === profile.id);
+      if (!user) {
+        const newUser = {
+          id: profile.id,
+          username: `github_${profile.id}`,
+          githubId: profile.id,
+          platforms: {},
+        };
+        users.set(newUser.username, newUser);
+        return done(null, newUser);
+      }
+      return done(null, user);
+    }
+  )
+);
+
+// OAuth Routes
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+app.get(
+  '/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/' }),
+  (req, res) => {
+    res.redirect('/dashboard');
+  }
+);
+
+app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] }));
+app.get(
+  '/auth/github/callback',
+  passport.authenticate('github', { failureRedirect: '/' }),
+  (req, res) => {
+    res.redirect('/dashboard');
+  }
+);
 
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
+    status: 'success',
     message: 'Coding Contests API',
     endpoints: {
       '/contests': 'Get all active contests from Codeforces, LeetCode, and CodeChef',
-      '/contests/codeforces': 'Get active Codeforces contests',
-      '/contests/leetcode': 'Get active LeetCode contests',
-      '/contests/codechef': 'Get active CodeChef contests',
-      '/users/codeforces/:handle': 'Get user information from Codeforces'
-    }
+      '/users/codeforces/:handle': 'Get user info from Codeforces',
+      '/users/leetcode/:username': 'Get user info from LeetCode',
+      '/users/codechef/:username': 'Get user info from CodeChef',
+      '/profile': 'Get logged-in user profile (requires authentication)',
+      '/connect-platforms': 'POST platform usernames (requires authentication)',
+    },
   });
 });
 
-// Helper function to fetch Codeforces contests
+// Contest Fetching Functions
 async function fetchCodeforcesContests() {
   try {
     const response = await axios.get('https://codeforces.com/api/contest.list');
-    
-    if (response.data.status !== 'OK') {
-      throw new Error('Failed to fetch Codeforces contests');
-    }
-    
-    // Filter only active contests (phase === "BEFORE")
-    const activeContests = response.data.result
-      .filter(contest => contest.phase === 'BEFORE')
-      .map(contest => ({
+    if (response.data.status !== 'OK') throw new Error('Failed to fetch Codeforces contests');
+    return response.data.result
+      .filter((contest) => contest.phase === 'BEFORE')
+      .map((contest) => ({
         platform: 'Codeforces',
         name: contest.name,
-        startTimeUnix: contest.startTimeSeconds,
         startTime: new Date(contest.startTimeSeconds * 1000).toISOString(),
-        durationSeconds: contest.durationSeconds,
-        duration: `${Math.floor(contest.durationSeconds / 3600)} hours ${(contest.durationSeconds % 3600) / 60} minutes`,
+        duration: `${Math.floor(contest.durationSeconds / 3600)}h ${(contest.durationSeconds % 3600) / 60}m`,
         url: `https://codeforces.com/contests/${contest.id}`,
-        rating: Math.floor(Math.random() * 1000) + 1000, // Mock rating
-        rank: "Expert", // Mock rank
-        contests: Math.floor(Math.random() * 100), // Mock contests count
-        solved: Math.floor(Math.random() * 500) // Mock solved problems
       }));
-    
-    return activeContests;
   } catch (error) {
     console.error('Error fetching Codeforces contests:', error.message);
     return [];
   }
 }
 
-// Helper function to fetch LeetCode contests
 async function fetchLeetcodeContests() {
   try {
     const graphqlQuery = {
@@ -69,275 +152,251 @@ async function fetchLeetcodeContests() {
             titleSlug
           }
         }
-      `
+      `,
     };
-    
     const response = await axios.post('https://leetcode.com/graphql', graphqlQuery, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' },
     });
-    
-    const allContests = response.data.data.allContests;
     const now = Date.now();
-    
-    // Filter only active contests (start time is in the future)
-    const activeContests = allContests
-      .filter(contest => contest.startTime * 1000 > now)
-      .map(contest => ({
+    return response.data.data.allContests
+      .filter((contest) => contest.startTime * 1000 > now)
+      .map((contest) => ({
         platform: 'LeetCode',
         name: contest.title,
-        startTimeUnix: contest.startTime,
         startTime: new Date(contest.startTime * 1000).toISOString(),
-        durationSeconds: contest.duration,
-        duration: `${Math.floor(contest.duration / 3600)} hours ${(contest.duration % 3600) / 60} minutes`,
+        duration: `${Math.floor(contest.duration / 3600)}h ${(contest.duration % 3600) / 60}m`,
         url: `https://leetcode.com/contest/${contest.titleSlug}`,
-        rating: Math.floor(Math.random() * 1000) + 1000, // Mock rating
-        rank: "Guardian", // Mock rank
-        contests: Math.floor(Math.random() * 100), // Mock contests count
-        solved: Math.floor(Math.random() * 500) // Mock solved problems
       }));
-    
-    return activeContests;
   } catch (error) {
     console.error('Error fetching LeetCode contests:', error.message);
     return [];
   }
 }
 
-// Helper function to fetch CodeChef contests
 async function fetchCodechefContests() {
   try {
     const response = await axios.get('https://www.codechef.com/api/list/contests/all');
-    
-    if (!response.data || !response.data.future_contests) {
-      throw new Error('Failed to fetch CodeChef contests');
-    }
-    
-    const activeContests = response.data.future_contests.map(contest => ({
+    if (!response.data.future_contests) throw new Error('Failed to fetch CodeChef contests');
+    return response.data.future_contests.map((contest) => ({
       platform: 'CodeChef',
       name: contest.contest_name,
-      code: contest.contest_code,
-      startTimeUnix: Math.floor(new Date(contest.contest_start_date).getTime() / 1000),
       startTime: new Date(contest.contest_start_date).toISOString(),
-      endTime: new Date(contest.contest_end_date).toISOString(),
       duration: calculateDuration(contest.contest_start_date, contest.contest_end_date),
       url: `https://www.codechef.com/${contest.contest_code}`,
-      rating: Math.floor(Math.random() * 1000) + 1000, // Mock rating
-      rank: "6★", // Mock rank
-      contests: Math.floor(Math.random() * 100), // Mock contests count
-      solved: Math.floor(Math.random() * 500) // Mock solved problems
     }));
-    
-    return activeContests;
   } catch (error) {
     console.error('Error fetching CodeChef contests:', error.message);
     return [];
   }
 }
 
-// Helper function to calculate duration between two dates
 function calculateDuration(startDate, endDate) {
   const start = new Date(startDate);
   const end = new Date(endDate);
-  const durationSeconds = Math.floor((end - start) / 1000);
-  
-  return `${Math.floor(durationSeconds / 3600)} hours ${(durationSeconds % 3600) / 60} minutes`;
+  const durationSeconds = (end - start) / 1000;
+  return `${Math.floor(durationSeconds / 3600)}h ${(durationSeconds % 3600) / 60}m`;
 }
 
-// Endpoint to get all active contests
+// Contests Endpoint
 app.get('/contests', async (req, res) => {
   try {
     const [codeforces, leetcode, codechef] = await Promise.all([
       fetchCodeforcesContests(),
       fetchLeetcodeContests(),
-      fetchCodechefContests()
+      fetchCodechefContests(),
     ]);
-    
-    const allContests = [...codeforces, ...leetcode, ...codechef].sort((a, b) => a.startTimeUnix - b.startTimeUnix);
-    
-    res.json({
-      status: 'success',
-      count: allContests.length,
-      data: allContests
-    });
+    const allContests = [...codeforces, ...leetcode, ...codechef].sort(
+      (a, b) => new Date(a.startTime) - new Date(b.startTime)
+    );
+    res.json({ status: 'success', count: allContests.length, data: allContests });
   } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: error.message
-    });
+    res.status(500).json({ status: 'error', message: error.message });
   }
 });
 
-// Platform-specific contest endpoints
-app.get('/contests/codeforces', async (req, res) => {
+// User Profile Fetching Functions
+async function fetchCodeforcesUser(handle) {
   try {
-    const contests = await fetchCodeforcesContests();
-    
-    res.json({
-      status: 'success',
-      count: contests.length,
-      data: contests
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: error.message
-    });
-  }
-});
-
-app.get('/contests/leetcode', async (req, res) => {
-  try {
-    const contests = await fetchLeetcodeContests();
-    
-    res.json({
-      status: 'success',
-      count: contests.length,
-      data: contests
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: error.message
-    });
-  }
-});
-
-app.get('/contests/codechef', async (req, res) => {
-  try {
-    const contests = await fetchCodechefContests();
-    
-    res.json({
-      status: 'success',
-      count: contests.length,
-      data: contests
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: error.message
-    });
-  }
-});
-
-// New endpoint to get user data from Codeforces
-app.get('/users/codeforces/:handle', async (req, res) => {
-  try {
-    const handle = req.params.handle;
     const response = await axios.get(`https://codeforces.com/api/user.info?handles=${handle}`);
-    
-    if (response.data.status !== 'OK') {
-      throw new Error('Failed to fetch Codeforces user info');
-    }
-    
+    if (response.data.status !== 'OK') throw new Error('Failed to fetch Codeforces user');
     const userData = response.data.result[0];
-    
-    // Get user's contest history
-    const contestHistoryResponse = await axios.get(`https://codeforces.com/api/user.rating?handle=${handle}`);
-    const contestHistory = contestHistoryResponse.data.result || [];
-    
-    // Get the user's submissions count
-    const submissionsResponse = await axios.get(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=1`);
-    const submissionsCount = submissionsResponse.data.result ? submissionsResponse.data.result.length : 0;
-    
-    res.json({
-      status: 'success',
-      data: {
-        handle: userData.handle,
-        rating: userData.rating || 0,
-        maxRating: userData.maxRating || 0,
-        rank: userData.rank || 'unrated',
-        maxRank: userData.maxRank || 'unrated',
-        contribution: userData.contribution || 0,
-        registrationTimeSeconds: userData.registrationTimeSeconds,
-        lastOnlineTimeSeconds: userData.lastOnlineTimeSeconds,
-        friendOfCount: userData.friendOfCount || 0,
-        titlePhoto: userData.titlePhoto,
-        submissionsCount: submissionsCount,
-        contestHistory: contestHistory.map(contest => ({
-          contestId: contest.contestId,
-          contestName: contest.contestName,
-          rank: contest.rank,
-          oldRating: contest.oldRating,
-          newRating: contest.newRating,
-          ratingChange: contest.newRating - contest.oldRating,
-          timeSeconds: contest.ratingUpdateTimeSeconds
-        }))
-      }
-    });
+    const contestHistory = await axios.get(`https://codeforces.com/api/user.rating?handle=${handle}`);
+    return {
+      handle: userData.handle,
+      rating: userData.rating || 0,
+      maxRating: userData.maxRating || 0,
+      rank: userData.rank || 'unrated',
+      contestCount: contestHistory.data.result.length,
+    };
   } catch (error) {
-    console.error('Error fetching Codeforces user info:', error.message);
-    res.status(500).json({
-      status: 'error',
-      message: `Failed to fetch data for ${req.params.handle}: ${error.message}`
-    });
+    console.error('Error fetching Codeforces user:', error.message);
+    return null;
   }
-});
+}
 
-// New endpoint to get LeetCode user data
-app.get('/users/leetcode/:username', async (req, res) => {
+async function fetchLeetcodeUser(username) {
   try {
-    const username = req.params.username;
     const graphqlQuery = {
       query: `
         query getUserProfile($username: String!) {
           matchedUser(username: $username) {
             username
             submitStats: submitStatsGlobal {
-              acSubmissionNum {
-                difficulty
-                count
-                submissions
-              }
+              acSubmissionNum { difficulty count }
             }
-            profile {
-              reputation
-              ranking
-              starRating
-            }
+            profile { ranking }
           }
         }
       `,
-      variables: { username }
+      variables: { username },
     };
-    
     const response = await axios.post('https://leetcode.com/graphql', graphqlQuery, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' },
     });
-    
-    if (!response.data.data.matchedUser) {
-      throw new Error('User not found');
-    }
-    
     const user = response.data.data.matchedUser;
-    
-    res.json({
-      status: 'success',
-      data: {
-        username: user.username,
-        ranking: user.profile.ranking || 0,
-        reputation: user.profile.reputation || 0,
-        starRating: user.profile.starRating || 0,
-        totalSolved: user.submitStats?.acSubmissionNum?.[0]?.count || 0,
-        totalSubmissions: user.submitStats?.acSubmissionNum?.[0]?.submissions || 0,
-        easySolved: user.submitStats?.acSubmissionNum?.[1]?.count || 0,
-        mediumSolved: user.submitStats?.acSubmissionNum?.[2]?.count || 0,
-        hardSolved: user.submitStats?.acSubmissionNum?.[3]?.count || 0
-      }
-    });
+    if (!user) throw new Error('User not found');
+    return {
+      username: user.username,
+      ranking: user.profile.ranking || 0,
+      totalSolved: user.submitStats.acSubmissionNum[0].count || 0,
+      easySolved: user.submitStats.acSubmissionNum[1].count || 0,
+      mediumSolved: user.submitStats.acSubmissionNum[2].count || 0,
+      hardSolved: user.submitStats.acSubmissionNum[3].count || 0,
+    };
   } catch (error) {
-    console.error('Error fetching LeetCode user info:', error.message);
-    res.status(500).json({
-      status: 'error',
-      message: `Failed to fetch data for ${req.params.username}: ${error.message}`
-    });
+    console.error('Error fetching LeetCode user:', error.message);
+    return null;
   }
+}
+
+async function fetchCodechefUser(username) {
+  try {
+    // Note: CodeChef API requires authentication. This is a placeholder.
+    // You’ll need to obtain an API token from CodeChef and adjust the endpoint.
+    const response = await axios.get(`https://api.codechef.com/users/${username}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.CODECHEF_API_TOKEN}`,
+      },
+    });
+    if (response.data.status !== 'OK') throw new Error('Failed to fetch CodeChef user');
+    const userData = response.data.result.data;
+    return {
+      username: userData.username,
+      rating: userData.rating || 0,
+      highestRating: userData.highest_rating || 0,
+      country: userData.country || 'N/A',
+    };
+  } catch (error) {
+    console.error('Error fetching CodeChef user:', error.message);
+    return null;
+  }
+}
+
+// User Profile Endpoints
+app.get('/users/codeforces/:handle', async (req, res) => {
+  const data = await fetchCodeforcesUser(req.params.handle);
+  if (data) res.json({ status: 'success', data });
+  else res.status(500).json({ status: 'error', message: 'Failed to fetch user data' });
 });
 
-// Start the server
+app.get('/users/leetcode/:username', async (req, res) => {
+  const data = await fetchLeetcodeUser(req.params.username);
+  if (data) res.json({ status: 'success', data });
+  else res.status(500).json({ status: 'error', message: 'Failed to fetch user data' });
+});
+
+app.get('/users/codechef/:username', async (req, res) => {
+  const data = await fetchCodechefUser(req.params.username);
+  if (data) res.json({ status: 'success', data });
+  else res.status(500).json({ status: 'error', message: 'Failed to fetch user data' });
+});
+
+// Authentication Middleware
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) return next();
+  res.status(401).json({ status: 'error', message: 'Unauthorized' });
+}
+
+// Connect Platforms Endpoint
+app.post('/connect-platforms', ensureAuthenticated, (req, res) => {
+  const { codeforces, leetcode, codechef } = req.body;
+  const user = users.get(req.user.username);
+  user.platforms = {
+    codeforces: codeforces || user.platforms.codeforces,
+    leetcode: leetcode || user.platforms.leetcode,
+    codechef: codechef || user.platforms.codechef,
+  };
+  users.set(req.user.username, user);
+  res.json({ status: 'success', message: 'Platforms updated' });
+});
+
+// Profile Endpoint
+app.get('/profile', ensureAuthenticated, async (req, res) => {
+  const user = req.user;
+  const platforms = user.platforms || {};
+
+  // Fetch user profile data
+  const profileData = {};
+  if (platforms.codeforces) profileData.codeforces = await fetchCodeforcesUser(platforms.codeforces);
+  if (platforms.leetcode) profileData.leetcode = await fetchLeetcodeUser(platforms.leetcode);
+  if (platforms.codechef) profileData.codechef = await fetchCodechefUser(platforms.codechef);
+
+  // Fetch contest data
+  const [codeforcesContests, leetcodeContests, codechefContests] = await Promise.all([
+    fetchCodeforcesContests(),
+    fetchLeetcodeContests(),
+    fetchCodechefContests(),
+  ]);
+  const allContests = [...codeforcesContests, ...leetcodeContests, ...codechefContests].sort(
+    (a, b) => new Date(a.startTime) - new Date(b.startTime)
+  );
+  const upcomingContests = allContests.slice(0, 5); // Top 5 upcoming contests
+  const recentContests = []; // Placeholder: implement logic to fetch user’s recent contests if available
+
+  res.json({
+    status: 'success',
+    data: {
+      username: user.username,
+      platformConnections: {
+        codeforces: platforms.codeforces || 'Not connected',
+        leetcode: platforms.leetcode || 'Not connected',
+        codechef: platforms.codechef || 'Not connected',
+      },
+      profiles: profileData,
+      upcomingContests,
+      recentContests,
+    },
+  });
+});
+
+// Signup and Login (for local auth, optional with OAuth)
+app.post('/signup', (req, res) => {
+  const { username, password } = req.body;
+  if (users.has(username)) {
+    return res.status(400).json({ status: 'error', message: 'User already exists' });
+  }
+  const newUser = { id: Date.now().toString(), username, password, platforms: {} };
+  users.set(username, newUser);
+  res.json({ status: 'success', message: 'User registered' });
+});
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  const user = users.get(username);
+  if (!user || user.password !== password) {
+    return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+  }
+  req.login(user, (err) => {
+    if (err) return res.status(500).json({ status: 'error', message: err.message });
+    res.json({ status: 'success', message: 'Login successful' });
+  });
+});
+
+// Dashboard Redirect (placeholder)
+app.get('/dashboard', ensureAuthenticated, (req, res) => {
+  res.json({ status: 'success', message: 'Welcome to your dashboard', user: req.user.username });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

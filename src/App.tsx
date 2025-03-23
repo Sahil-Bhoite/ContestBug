@@ -11,10 +11,10 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
-import Statistics from "./pages/Statistics";
 import NotFound from "./pages/NotFound";
-import Ratings from "./pages/Ratings";
 import { ThemeProvider, useTheme } from "./components/ThemeProvider";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import OnboardingModal from "./components/OnboardingModal";
 import AppSidebar from "./components/AppSidebar";
 
@@ -89,9 +89,8 @@ const AppRoutes = () => {
             <Route path="/signup" element={<Signup />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />} />
-            <Route path="/statistics" element={<Statistics />} />
-            <Route path="/ratings" element={<Ratings />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

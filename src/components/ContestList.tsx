@@ -121,7 +121,7 @@ const ContestList = ({ contestbugs, loading, theme }: ContestListProps) => {
                       </div>
                       <div>
                         <Button 
-                          variant={platformStyle.buttonVariant as any}
+                          variant={platformStyle.buttonVariant as "codeforces" | "leetcode" | "codechef" | "default"}
                           size="sm" 
                           asChild
                           className="ml-2 transition-all duration-200 hover:shadow-md"

@@ -93,7 +93,7 @@ export const PlatformConnector = ({ theme = "dark" }: PlatformConnectorProps) =>
       await backendApi.getUserStats(platformLower, username.trim());
       
       // If validation succeeds, connect the platform
-      const success = await api.connectPlatform(platform as any, username.trim());
+      const success = await api.connectPlatform(platform as Platform, username.trim());
       
       if (success) {
         toast.success(`Your ${platform} account has been connected successfully.`);
@@ -133,7 +133,7 @@ export const PlatformConnector = ({ theme = "dark" }: PlatformConnectorProps) =>
     setDisconnectingPlatform(platform);
     
     try {
-      const success = await api.disconnectPlatform(platform as any);
+      const success = await api.disconnectPlatform(platform as Platform);
       
       if (success) {
         toast.success(`Your ${platform} account has been disconnected.`);

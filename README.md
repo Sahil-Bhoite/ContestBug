@@ -1,8 +1,11 @@
-# ContestBug
+Welcome to ContestHub, a platform designed to streamline the process of managing and participating in various contests. This project aims to provide a user-friendly interface for both contest organizers and participants. **Please note that this project is still under development.**
+>>>>>>> 65457da (update 2)
+# ContestHub
 
-Welcome to ContestBug, a platform designed to streamline the process of managing and participating in various contests. This project aims to provide a user-friendly interface for both contest organizers and participants.
-
-<img width="1545" alt="Screenshot 2025-03-22 at 1 06 43 PM" src="https://github.com/user-attachments/assets/5f74b38e-aefa-40a0-a9b2-96673c4cdc76" />
+Welcome to ContestHub, a platform designed to streamline the process of managing and participating in various contests. This project aims to provide a user-friendly interface for both contest organizers and participants. **Please note that this project is still under development.**
+=======
+Welcome to ContestHub, a platform designed to streamline the process of managing and participating in various contests. This project aims to provide a user-friendly interface for both contest organizers and participants. **Please note that this project is still under development.**
+>>>>>>> 65457da (update 2)
 
 ## Tools Used
 

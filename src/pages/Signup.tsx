@@ -100,11 +100,23 @@ const Signup = () => {
                   Must be at least 8 characters with a number and a special character
                 </p>
               </div>
+              <div className="flex justify-center gap-4 mt-4">
+                <a href="/auth/google" className="w-full inline-block text-center bg-blue-500 text-white py-2 rounded">
+                  Sign up with Google
+                </a>
+                <a href="/auth/github" className="w-full inline-block text-center bg-gray-800 text-white py-2 rounded">
+                  Sign up with GitHub
+                </a>
+              </div>
             </CardContent>
+
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creating account..." : "Create account"}
-              </Button>
+              <div className="button-wrap">
+                <button type="submit" className="w-full" disabled={loading}>
+                  <span>{loading ? "Creating account..." : "Create account"}</span>
+                </button>
+                <div className="button-shadow"></div>
+              </div>
             </CardFooter>
           </form>
         </Card>

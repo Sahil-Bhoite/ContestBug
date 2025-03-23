@@ -5,7 +5,7 @@ import { UserProfile } from "../types/userProfile";
 // Constants
 const API_BASE_URL = process.env.NODE_ENV === "production" 
   ? "https://your-production-api-url.com"  // Change this to your actual production API URL
-  : "http://localhost:4000";  // Local development API URL
+  : "http://localhost:4000";  
 
 // Types
 export interface Contestbug {
@@ -197,7 +197,7 @@ class BackendAPI {
   }
 
   // Generic method to get user statistics from any platform
-  async getUserStats(platform: "codeforces" | "leetcode" | "codechef", username: string): Promise<CodeforcesUserData | LeetCodeUserData | any> {
+  async getUserStats(platform: "codeforces" | "leetcode" | "codechef", username: string): Promise<CodeforcesUserData | LeetCodeUserData | unknown> {
     try {
       if (!username || username.trim() === '') {
         throw new Error("Username is required");
@@ -222,7 +222,7 @@ class BackendAPI {
   async getCodeChefUser(username: string): Promise<unknown> {
     try {
       // Implement the API call to fetch CodeChef user data
-      const response = await apiClient.get<ApiResponse<any>>(`/users/codechef/${username}`);
+      const response = await apiClient.get<ApiResponse<unknown>>(`/users/codechef/${username}`);
       
       if (response.data.status === "success" && response.data.data) {
         return response.data.data;

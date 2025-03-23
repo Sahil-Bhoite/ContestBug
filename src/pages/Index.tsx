@@ -132,13 +132,13 @@ const Index = () => {
               © {new Date().getFullYear()} {appName}. All rights reserved.
             </p>
             <div className="flex gap-6">
-              <a href="#" className="text-sm opacity-70 hover:opacity-100 transition-opacity">
+              <a href="/terms" className="text-sm opacity-70 hover:opacity-100 transition-opacity">
                 Terms
               </a>
-              <a href="#" className="text-sm opacity-70 hover:opacity-100 transition-opacity">
+              <a href="/privacy" className="text-sm opacity-70 hover:opacity-100 transition-opacity">
                 Privacy
               </a>
-              <a href="#" className="text-sm opacity-70 hover:opacity-100 transition-opacity">
+              <a href="https://www.linkedin.com/in/sahil-bhoite/" className="text-sm opacity-70 hover:opacity-100 transition-opacity">
                 Contact
               </a>
             </div>

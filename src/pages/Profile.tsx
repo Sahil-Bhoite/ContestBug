@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Code, Code2, Coffee, FileCode, LineChart, Trophy } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useTheme } from "@/components/ThemeProvider";
-import { ContestStats } from "@/components/ContestStats";
 import { RatingChart } from "@/components/RatingChart";
 import { PlatformConnector } from "@/components/PlatformConnector";
 import { toast } from "sonner";
@@ -20,41 +18,42 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
-  
-  // Get data for connected platforms from the API
-  const codeforcesData = usePlatformData('codeforces', userProfile?.platforms?.find(p => p.platform === "Codeforces")?.username || '');
-  const leetcodeData = usePlatformData('leetcode', userProfile?.platforms?.find(p => p.platform === "LeetCode")?.username || '');
-  const codechefData = usePlatformData('codechef', userProfile?.platforms?.find(p => p.platform === "CodeChef")?.username || '');
-  
-  // Load user profile data on component mount
+
+  // Function to fetch or refetch user profile data
+  const fetchUserProfile = async () => {
+    setIsLoading(true);
+    try {
+      const profileData = await api.getUserProfile();
+      setUserProfile(profileData);
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+      toast.error("Failed to load profile data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch profile data on mount
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      setIsLoading(true);
-      try {
-        const profileData = await api.getUserProfile();
-        setUserProfile(profileData);
-      } catch (error) {
-        console.error("Error loading user profile:", error);
-        toast.error("Failed to load profile data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchUserProfile();
   }, []);
-  
+
+  // Fetch platform-specific data using usernames from platformConnections
+  const codeforcesData = usePlatformData('codeforces', userProfile?.platformConnections?.codeforces || '');
+  const leetcodeData = usePlatformData('leetcode', userProfile?.platformConnections?.leetcode || '');
+  const codechefData = usePlatformData('codechef', userProfile?.platformConnections?.codechef || '');
+
   // Transform Codeforces rating history for the chart
   const ratingChartData = codeforcesData.ratingHistory?.map(entry => ({
     date: new Date(entry.date).toLocaleDateString('en-US', { month: 'short' }),
     rating: entry.rating
   })) || [];
-  
-  // Combine platform data
+
+  // Combine platform data for display
   const platformsData = [
     {
       platform: "Codeforces",
-      username: codeforcesData.username || userProfile?.platforms?.find(p => p.platform === "Codeforces")?.username,
+      username: codeforcesData.username,
       rating: codeforcesData.rating || 0,
       rank: codeforcesData.rank || 'Unrated',
       contests: codeforcesData.totalContests || 0,
@@ -63,7 +62,7 @@ const Profile = () => {
     },
     {
       platform: "LeetCode",
-      username: leetcodeData.username || userProfile?.platforms?.find(p => p.platform === "LeetCode")?.username,
+      username: leetcodeData.username,
       rating: leetcodeData.rating || 0,
       rank: leetcodeData.rank || 'Unrated',
       contests: leetcodeData.totalContests || 0,
@@ -72,7 +71,7 @@ const Profile = () => {
     },
     {
       platform: "CodeChef",
-      username: codechefData.username || userProfile?.platforms?.find(p => p.platform === "CodeChef")?.username,
+      username: codechefData.username,
       rating: codechefData.rating || 0,
       rank: codechefData.rank || 'Unrated',
       contests: codechefData.totalContests || 0,
@@ -90,9 +89,9 @@ const Profile = () => {
       </main>
     );
   }
-  
+
   return (
-    <main className="flex-1">
+    <main className="flex-1 flex flex-col overflow-y-auto">
       <header className={`border-b ${theme === "dark" ? "border-zinc-800" : "border-zinc-200"} p-4 sticky top-0 z-10 backdrop-blur-sm bg-background/80`}>
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-medium">My Profile</h1>
@@ -123,25 +122,7 @@ const Profile = () => {
                   </div>
                 </div>
                 <div className="p-6">
-                  <h3 className="font-medium mb-3">Platform Ratings</h3>
-                  <div className="space-y-4">
-                    {platformsData.map((platform) => (
-                      <div key={platform.platform} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <PlatformIcon platform={platform.platform} />
-                          <div>
-                            <p className="text-sm font-medium">{platform.platform}</p>
-                            <p className={`text-xs ${theme === "dark" ? "text-zinc-400" : "text-zinc-600"}`}>
-                              {platform.connected ? platform.username : "Not connected"}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge variant={getBadgeVariant(platform.platform)} className="font-medium">
-                          {platform.connected ? `${platform.rating} (${platform.rank})` : "N/A"}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
+                  {/* Additional user info could go here */}
                 </div>
               </Card>
             </div>
@@ -149,35 +130,28 @@ const Profile = () => {
             <div className="lg:col-span-2">
               <Tabs defaultValue="overview" className="w-full" onValueChange={setActiveTab}>
                 <TabsList className="w-full justify-start mb-6 bg-transparent border-b">
-                  <TabsTrigger 
-                    value="overview" 
+                  <TabsTrigger
+                    value="overview"
                     className="data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent"
                   >
                     Overview
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="ratings" 
-                    className="data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent"
-                  >
-                    Ratings & History
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="connections" 
+                  <TabsTrigger
+                    value="connections"
                     className="data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent"
                   >
                     Platform Connections
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="achievements" 
+                  <TabsTrigger
+                    value="achievements"
                     className="data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent"
                   >
                     Achievements
                   </TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="overview" className="mt-0">
                   <div className="space-y-6">
-                    <ContestStats theme={theme} />
                     <Card className={`transition-all duration-200 hover:shadow-md ${theme === "dark" ? "bg-zinc-800 border-zinc-700" : ""}`}>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -201,9 +175,9 @@ const Profile = () => {
                                   {platform.connected ? `${platform.solved} problems solved` : "Not connected"}
                                 </p>
                               </div>
-                              <Progress 
-                                value={platform.connected ? (platform.solved / 100) * 100 : 0} 
-                                className={`h-2 ${getPlatformProgressColor(platform.platform)}`} 
+                              <Progress
+                                value={platform.connected ? Math.min((platform.solved / 100) * 100, 100) : 0}
+                                className={`h-2 ${getPlatformProgressColor(platform.platform)}`}
                               />
                             </div>
                           ))}
@@ -212,46 +186,11 @@ const Profile = () => {
                     </Card>
                   </div>
                 </TabsContent>
-                
-                <TabsContent value="ratings" className="mt-0">
-                  <Card className={`transition-all duration-200 ${theme === "dark" ? "bg-zinc-800 border-zinc-700" : ""}`}>
-                    <CardHeader>
-                      <CardTitle>Rating History</CardTitle>
-                      <CardDescription>
-                        Your competitive programming rating over time
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {codeforcesData.isLoading ? (
-                        <div className="flex justify-center items-center h-64">
-                          <p>Loading rating data...</p>
-                        </div>
-                      ) : codeforcesData.error ? (
-                        <div className="flex justify-center items-center h-64 text-center">
-                          <div>
-                            <p className="mb-2">Failed to load rating data: {codeforcesData.error}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Connect your Codeforces account in the Platform Connections tab to see your rating history.
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <RatingChart 
-                          data={ratingChartData}
-                          currentRating={codeforcesData.rating}
-                          tier={codeforcesData.rank}
-                          theme={theme}
-                          platform="Codeforces"
-                        />
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
+
                 <TabsContent value="connections" className="mt-0">
                   <PlatformConnector theme={theme} />
                 </TabsContent>
-                
+
                 <TabsContent value="achievements" className="mt-0">
                   <Card className={`h-96 flex items-center justify-center ${theme === "dark" ? "bg-zinc-800 border-zinc-700" : ""}`}>
                     <div className="text-center p-6">

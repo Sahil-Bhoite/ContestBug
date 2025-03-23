@@ -40,25 +40,7 @@ const AppSidebar = ({ onToggleSidebar, sidebarOpen }: AppSidebarProps) => {
               className={`flex items-center gap-3 p-2 rounded-md transition-colors duration-200 ${isActive("/dashboard") ? (theme === "dark" ? "bg-zinc-700" : "bg-zinc-200") : (theme === "dark" ? "hover:bg-zinc-700" : "hover:bg-zinc-200")} ${sidebarOpen ? 'px-3' : 'justify-center'}`}
             >
               <Calendar className="h-5 w-5" />
-              {sidebarOpen && <span>Contests</span>}
-            </Link>
-          </li>
-          <li>
-            <Link 
-              to="/profile" 
-              className={`flex items-center gap-3 p-2 rounded-md transition-colors duration-200 ${isActive("/profile") ? (theme === "dark" ? "bg-zinc-700" : "bg-zinc-200") : (theme === "dark" ? "hover:bg-zinc-700" : "hover:bg-zinc-200")} ${sidebarOpen ? 'px-3' : 'justify-center'}`}
-            >
-              <User className="h-5 w-5" />
-              {sidebarOpen && <span>Profile</span>}
-            </Link>
-          </li>
-          <li>
-            <Link 
-              to="/statistics" 
-              className={`flex items-center gap-3 p-2 rounded-md transition-colors duration-200 ${isActive("/statistics") ? (theme === "dark" ? "bg-zinc-700" : "bg-zinc-200") : (theme === "dark" ? "hover:bg-zinc-700" : "hover:bg-zinc-200")} ${sidebarOpen ? 'px-3' : 'justify-center'}`}
-            >
-              <Activity className="h-5 w-5" />
-              {sidebarOpen && <span>Statistics</span>}
+              {sidebarOpen && <span>Dashboard</span>}
             </Link>
           </li>
           <li>
@@ -70,20 +52,14 @@ const AppSidebar = ({ onToggleSidebar, sidebarOpen }: AppSidebarProps) => {
               {sidebarOpen && <span>Settings</span>}
             </Link>
           </li>
-          <li>
-            <Link 
-              to="/ratings" 
-              className={`flex items-center gap-3 p-2 rounded-md transition-colors duration-200 ${isActive("/ratings") ? (theme === "dark" ? "bg-zinc-700" : "bg-zinc-200") : (theme === "dark" ? "hover:bg-zinc-700" : "hover:bg-zinc-200")} ${sidebarOpen ? 'px-3' : 'justify-center'}`}
-            >
-              <BarChart className="h-5 w-5" />
-              {sidebarOpen && <span>Ratings</span>}
-            </Link>
-          </li>
         </ul>
       </nav>
       
       <div className="p-4 border-t mt-auto">
-        <div className={`flex items-center gap-3 ${sidebarOpen ? 'w-full' : 'justify-center'}`}>
+        <Link 
+          to="/profile" 
+          className={`flex items-center gap-3 p-2 rounded-md transition-colors duration-200 ${isActive("/profile") ? (theme === "dark" ? "bg-zinc-700" : "bg-zinc-200") : (theme === "dark" ? "hover:bg-zinc-700" : "hover:bg-zinc-200")} ${sidebarOpen ? 'w-full' : 'justify-center'}`}
+        >
           <Avatar className="h-8 w-8 ring-2 ring-emerald-500/20">
             <AvatarImage src="/placeholder.svg" />
             <AvatarFallback className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
@@ -91,7 +67,7 @@ const AppSidebar = ({ onToggleSidebar, sidebarOpen }: AppSidebarProps) => {
             </AvatarFallback>
           </Avatar>
           {sidebarOpen && <span>{userName}</span>}
-        </div>
+        </Link>
       </div>
     </aside>
   );

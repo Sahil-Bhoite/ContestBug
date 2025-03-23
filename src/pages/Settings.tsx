@@ -21,7 +21,7 @@ const Settings = ({ sidebarOpen, onToggleSidebar }: SettingsProps) => {
   const [contestReminders, setContestReminders] = useState(true);
 
   return (
-    <main className="flex-1 flex flex-col overflow-y-auto">
+    <main className={`flex-1 flex flex-col overflow-y-auto ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
       <header className={`border-b ${theme === "dark" ? "border-zinc-800" : "border-zinc-200"} p-4 sticky top-0 z-10 backdrop-blur-sm bg-background/80`}>
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-medium">Settings</h1>
